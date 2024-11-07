@@ -17,3 +17,6 @@ This project is an exercise in creating a backend application using Node.js and 
    git clone https://github.com/KusAndiPriyono/db_eccom_server.git
    cd db_eccom_server
    ```
+2. Set up environment variables:
+
+   Create a `.env` file in the root directory and add the necessary environment variables as shown in the `.env.example` file.
