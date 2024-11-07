@@ -21,9 +21,13 @@ This project is an exercise in creating a backend application using Node.js and 
 
    Create a `.env` file in the root directory and add the necessary environment variables as shown in the `.env.example` file.
 
-3. Clone the repository:
+3. Start the server:
    ```sh
    npm start
+   ```
+   or
+   ```sh
+   npm run start
    ```
 
 ## Usage
