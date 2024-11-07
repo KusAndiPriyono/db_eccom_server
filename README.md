@@ -25,3 +25,8 @@ This project is an exercise in creating a backend application using Node.js and 
    ```sh
    npm start
    ```
+
+## Usage
+
+After setting up and starting the server, you can interact with the API endpoints using tools like Postman or through your Flutter mobile application.
+
