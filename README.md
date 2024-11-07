@@ -2,6 +2,15 @@
 
 This project is an exercise in creating a backend application using Node.js and Express, designed for use with mobile applications built with the Flutter framework.
 
+## Table of Contents
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Features
 
 - RESTful API endpoints for e-commerce functionalities
@@ -34,3 +43,17 @@ This project is an exercise in creating a backend application using Node.js and 
 
 After setting up and starting the server, you can interact with the API endpoints using tools like Postman or through your Flutter mobile application.
 
+## Project Structure
+
+      db_eccom_server/
+      ├── node_modules/
+      ├── src/
+      │   ├── controllers/
+      │   ├── models/
+      │   ├── routes/
+      │   ├── services/
+      │   ├── utils/
+      │   └── index.js
+      ├── .env.example
+      ├── package.json
+      └── README.md
