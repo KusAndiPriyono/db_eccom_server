@@ -20,9 +20,11 @@ app.use(errorHandler);
 
 const authRouter = require('./routes/authRoutes');
 const userRouter = require('./routes/userRoutes');
+const adminRouter = require('./routes/adminRoutes');
 
 app.use(`${API}/`, authRouter);
 app.use(`${API}/users`, userRouter);
+app.use(`${API}/admin`, adminRouter);
 
 const hostname = env.HOST;
 const port = env.PORT;
