@@ -19,11 +19,10 @@ app.use(authJwt());
 app.use(errorHandler);
 
 const authRouter = require('./routes/authRoutes');
+const userRouter = require('./routes/userRoutes');
 
 app.use(`${API}/`, authRouter);
-app.get(`${API}/users`, (req, res) => {
-  return res.status(200).send('Ini adalah route users');
-});
+app.use(`${API}/users`, userRouter);
 
 const hostname = env.HOST;
 const port = env.PORT;
