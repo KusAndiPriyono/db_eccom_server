@@ -25,9 +25,11 @@ const adminRouter = require('./routes/adminRoutes');
 app.use(`${API}/`, authRouter);
 app.use(`${API}/users`, userRouter);
 app.use(`${API}/admin`, adminRouter);
+app.use('/public/uploads', express.static(__dirname + '/public/uploads'));
 
 const hostname = env.HOST;
 const port = env.PORT;
+require('./helpers/cron_job');
 
 mongoose
   .connect(env.MONGODB_CONNECTION_STRING)

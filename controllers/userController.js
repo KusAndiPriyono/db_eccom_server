@@ -40,6 +40,7 @@ exports.updateUser = async (req, res) => {
       return res.status(404).json({ message: 'User tidak ditemukan' });
     }
     user.passwordHash = undefined;
+    user.cart = undefined;
     return res.json(user);
   } catch (error) {
     console.error(error);

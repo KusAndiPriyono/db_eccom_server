@@ -127,14 +127,6 @@ exports.forgotPassword = async (req, res) => {
       `Kode OTP untuk reset password anda adalah ${otp}`
     );
 
-    // if (response.statusCode === 500) {
-    //   return sendError(res, 500, response.message);
-    // } else if (response.statusCode === 200) {
-    //   return res.json({
-    //     message: 'Password reset OTP sudah dikirim ke email anda',
-    //   });
-    // }
-
     return res.json({
       message: response.message,
     });
@@ -170,14 +162,6 @@ exports.verifyPasswordResetOTP = async (req, res) => {
         'OTP tidak valid atau sudah kadaluarsa'
       );
     }
-
-    // if (user.resetPasswordOtp !== otp) {
-    //   return sendError(res, 400, 'AuthError', 'OTP tidak valid');
-    // }
-
-    // if (user.resetPasswordOtpExpires < Date.now()) {
-    //   return sendError(res, 400, 'AuthError', 'OTP sudah kadaluarsa');
-    // }
 
     user.resetPasswordOtp = 1;
     user.resetPasswordOtpExpires = undefined;
