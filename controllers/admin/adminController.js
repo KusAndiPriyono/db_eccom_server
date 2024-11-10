@@ -54,9 +54,3 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ type: error.name, message: error.message });
   }
 };
-
-exports.getProductsCount = async (req, res) => {};
-exports.addProduct = async (req, res) => {};
-exports.editProduct = async (req, res) => {};
-exports.deleteProduct = async (req, res) => {};
-exports.deleteProductImages = async (req, res) => {};
