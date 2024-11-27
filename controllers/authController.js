@@ -1,60 +1,57 @@
 const { validationResult } = require('express-validator');
 const { User } = require('../models/userModel');
-const { Token } = require('../models/token');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { Token } = require('../models/token');
 const mailSender = require('../helpers/email_sender');
 
-// Helper function for sending errors
-const sendError = (res, code, type, message) =>
-  res.status(code).json({ type, message });
-
-exports.register = async (req, res) => {
+exports.register = async function (req, res) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({
-      errors: errors
-        .array()
-        .map(({ path, msg }) => ({ field: path, message: msg })),
-    });
+    const errorMessages = errors.array().map((error) => ({
+      field: error.path,
+      message: error.msg,
+    }));
+    return res.status(400).json({ errors: errorMessages });
   }
-
   try {
-    const user = new User({
+    let user = new User({
       ...req.body,
       passwordHash: bcrypt.hashSync(req.body.password, 8),
     });
-    const savedUser = await user.save();
-    if (!savedUser)
-      return sendError(
-        res,
-        500,
-        'Internal Server Error',
-        'User tidak dapat dibuat'
-      );
 
-    return res.status(201).json(savedUser);
+    user = await user.save();
+    if (!user) {
+      return res.status(500).json({
+        type: 'Internal Server Error',
+        message: 'Could not create a new user',
+      });
+    }
+
+    return res.status(201).json(user);
   } catch (error) {
     console.error(error);
-    if (error.message.includes('duplicate key error collection')) {
-      return sendError(res, 409, 'AuthError', 'User dengan Email sudah ada.');
+    if (error.message.includes('email_1 dup key')) {
+      return res.status(409).json({
+        type: 'AuthError',
+        message: 'User with that email already exists.',
+      });
     }
-    return sendError(res, 500, error.name, error.message);
+    return res.status(500).json({ type: error.name, message: error.message });
   }
 };
 
-exports.login = async (req, res) => {
+exports.login = async function (req, res) {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-    const errorMessage = !user
-      ? 'Email tidak ditemukan'
-      : !bcrypt.compareSync(password, user.passwordHash)
-      ? 'Password salah'
-      : null;
-
-    if (errorMessage) {
-      return sendError(res, 400, 'AuthError', errorMessage);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: 'User not found\nCheck your email and try again.' });
+    }
+    if (!bcrypt.compareSync(password, user.passwordHash)) {
+      return res.status(400).json({ message: 'Incorrect password!' });
     }
 
     const accessToken = jwt.sign(
@@ -62,163 +59,140 @@ exports.login = async (req, res) => {
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: '24h' }
     );
+
     const refreshToken = jwt.sign(
       { id: user.id, isAdmin: user.isAdmin },
       process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: '60d' }
+      {
+        expiresIn: '60d',
+      }
     );
 
-    await Token.findOneAndDelete({ userId: user.id });
-    await new Token({ userId: user.id, accessToken, refreshToken }).save();
-
+    const token = await Token.findOne({ userId: user.id });
+    if (token) await token.deleteOne();
+    await new Token({
+      userId: user.id,
+      accessToken,
+      refreshToken,
+    }).save();
+    user.passwordHash = undefined;
     return res.json({ ...user._doc, accessToken });
   } catch (error) {
     console.error(error);
-    return sendError(res, 500, error.name, error.message);
+    return res.status(500).json({ type: error.name, message: error.message });
   }
 };
 
-exports.verifyToken = async (req, res) => {
+exports.verifyToken = async function (req, res) {
   try {
-    const accessToken = req.headers.authorization
-      ?.replace('Bearer ', '')
-      .trim();
+    let accessToken = req.headers.authorization;
     if (!accessToken) return res.json(false);
+    accessToken = accessToken.replace('Bearer', '').trim();
 
     const token = await Token.findOne({ accessToken });
     if (!token) return res.json(false);
 
-    const { id } = jwt.verify(
+    const tokenData = jwt.decode(token.refreshToken);
+
+    const user = await User.findById(tokenData.id);
+    if (!user) return res.json(false);
+
+    const isValid = jwt.verify(
       token.refreshToken,
       process.env.REFRESH_TOKEN_SECRET
     );
-    const user = await User.findById(id);
-    return res.json(!!user);
+    if (!isValid) return res.json(false);
+    return res.json(true);
   } catch (error) {
     console.error(error);
-    return sendError(res, 500, 'AuthError', 'Internal Server Error');
+    return res.status(500).json({ type: error.name, message: error.message });
   }
 };
-
-exports.forgotPassword = async (req, res) => {
+exports.forgotPassword = async function (req, res) {
   try {
-    const email = req.body.email;
+    const { email } = req.body;
 
     const user = await User.findOne({ email });
 
     if (!user) {
-      return sendError(
-        res,
-        404,
-        'AuthError',
-        'User dengan Email tidak ditemukan'
-      );
+      return res
+        .status(404)
+        .json({ message: 'User with that email does NOT exist!' });
     }
 
     const otp = Math.floor(1000 + Math.random() * 9000);
 
     user.resetPasswordOtp = otp;
     user.resetPasswordOtpExpires = Date.now() + 600000;
+
     await user.save();
 
-    const response = await mailSender.sendEmail(
+    const response = await mailSender.sendMail(
       email,
-      'Reset Password OTP',
-      `Kode OTP untuk reset password anda adalah ${otp}`
+      'Password Reset OTP',
+      `Your OTP for password reset is: ${otp}`
     );
-
-    return res.json({
-      message: response.message,
-    });
+    return res.json({ message: response });
   } catch (error) {
     console.error(error);
-    return sendError(res, 500, error.name, error.message);
+    return res.status(500).json({ type: error.name, message: error.message });
   }
 };
-
-exports.verifyPasswordResetOTP = async (req, res) => {
+exports.verifyPasswordResetOTP = async function (req, res) {
   try {
     const { email, otp } = req.body;
 
     const user = await User.findOne({ email });
-
     if (!user) {
-      return sendError(
-        res,
-        404,
-        'AuthError',
-        'User dengan Email tidak ditemukan'
-      );
+      return res.status(404).json({ message: 'User not found!' });
     }
 
     if (
       user.resetPasswordOtp !== +otp ||
       Date.now() > user.resetPasswordOtpExpires
     ) {
-      return sendError(
-        res,
-        400,
-        'AuthError',
-        'OTP tidak valid atau sudah kadaluarsa'
-      );
+      return res.status(401).json({ message: 'Invalid or expired OTP' });
     }
-
     user.resetPasswordOtp = 1;
     user.resetPasswordOtpExpires = undefined;
 
     await user.save();
-
-    return res.json({
-      message: 'Konfirmasi OTP berhasil',
-    });
+    return res.json({ message: 'OTP confirmed successfully.' });
   } catch (error) {
     console.error(error);
-    return sendError(res, 500, error.name, error.message);
+    return res.status(500).json({ type: error.name, message: error.message });
   }
 };
-
-exports.resetPassword = async (req, res) => {
+exports.resetPassword = async function (req, res) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({
-      errors: errors
-        .array()
-        .map(({ path, msg }) => ({ field: path, message: msg })),
-    });
+    const errorMessages = errors.array().map((error) => ({
+      field: error.path,
+      message: error.msg,
+    }));
+    return res.status(400).json({ errors: errorMessages });
   }
-
   try {
     const { email, newPassword } = req.body;
 
     const user = await User.findOne({ email });
-
     if (!user) {
-      return sendError(
-        res,
-        404,
-        'AuthError',
-        'User dengan Email tidak ditemukan'
-      );
+      return res.status(404).json({ message: 'User not found!' });
     }
 
     if (user.resetPasswordOtp !== 1) {
-      return sendError(
-        res,
-        401,
-        'AuthError',
-        'Anda belum melakukan verifikasi OTP'
-      );
+      return res
+        .status(401)
+        .json({ message: 'Confirm OTP before resetting password.' });
     }
 
     user.passwordHash = bcrypt.hashSync(newPassword, 8);
     user.resetPasswordOtp = undefined;
     await user.save();
 
-    return res.json({
-      message: 'Password berhasil direset',
-    });
+    return res.json({ message: 'Password reset successfully' });
   } catch (error) {
     console.error(error);
-    return sendError(res, 500, error.name, error.message);
+    return res.status(500).json({ type: error.name, message: error.message });
   }
 };
