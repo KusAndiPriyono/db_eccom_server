@@ -95,7 +95,7 @@ exports.addProduct = async (req, res) => {
     return res.status(201).json(product);
   } catch (error) {
     console.error(error);
-    if (err instanceof multer.MulterError) {
+    if (error instanceof multer.MulterError) {
       return res.status(err.code).json({ message: err.message });
     }
     return res.status(500).json({ type: error.name, message: error.message });
@@ -189,7 +189,7 @@ exports.editProduct = async (req, res) => {
     return res.json(updatedProduct);
   } catch (error) {
     console.error(error);
-    if (err instanceof multer.MulterError) {
+    if (error instanceof multer.MulterError) {
       return res.status(err.code).json({ message: err.message });
     }
     return res.status(500).json({ type: error.name, message: error.message });

@@ -25,12 +25,16 @@ const userRouter = require('./routes/userRoutes');
 const adminRouter = require('./routes/adminRoutes');
 const categoryRouter = require('./routes/categoryRoutes');
 const productsRouter = require('./routes/productRoutes');
+const checkoutRouter = require('./routes/checkout');
+const ordersRouter = require('./routes/orders');
 
 app.use(`${API}/`, authRouter);
 app.use(`${API}/users`, userRouter);
 app.use(`${API}/admin`, adminRouter);
 app.use(`${API}/category`, categoryRouter);
 app.use(`${API}/products`, productsRouter);
+app.use(`${API}/checkout`, checkoutRouter);
+app.use(`${API}/orders`, ordersRouter);
 app.use('/public/uploads', express.static(__dirname + '/public/uploads'));
 
 const hostname = env.HOST;
